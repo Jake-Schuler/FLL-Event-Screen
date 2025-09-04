@@ -2,6 +2,7 @@ package main
 
 import (
 	"embed"
+	"net/http"
 	"html/template"
 
 	"github.com/gin-gonic/gin"
@@ -14,9 +15,12 @@ import (
 //go:embed templates/*
 var templates embed.FS
 
+//go:embed assets/*
+var assets embed.FS
+
 func main() {
 	// Load environment variables
-	if err := godotenv.Load("data/.env"); err != nil {
+	if err := godotenv.Load(".env"); err != nil {
 		panic("Error loading .env file")
 	}
 
@@ -26,6 +30,7 @@ func main() {
 	// Initialize Gin router
 	r := gin.Default()
 	r.SetHTMLTemplate(template.Must(template.New("").ParseFS(templates, "templates/*")))
+	r.StaticFS("/assets", http.FS(assets))
 	r.Static("/static", "./static")
 
 	// Setup routes

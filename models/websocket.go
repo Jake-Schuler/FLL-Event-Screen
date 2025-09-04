@@ -11,9 +11,8 @@ type WebSocketResponse struct {
 }
 
 type WebSocketMatchPayload struct {
-	MatchLevel   string   `json:"match_level"`
 	MatchID      int      `json:"match_id"`
-	EventName    string   `json:"event_name"`
-	RedAlliance  []string `json:"red_alliance"`
-	BlueAlliance []string `json:"blue_alliance"`
+	IsRedTable   bool     `json:"is_red_table"`
+	AllianceA  []string `json:"alliance_a"`
+	AllianceB []string `json:"alliance_b"`
 }

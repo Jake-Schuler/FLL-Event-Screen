@@ -1,11 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>{{ .title }}</title>
+    <link rel="stylesheet" href="/assets/assets/pico.min.css">
 </head>
+
 <body>
-    
+    <script>
+        var socket = new WebSocket(location.protocol == "http" ? "ws://" : "wss://" + location.host + "/ws");
+        socket.addEventListener("open", (event) => {
+            socket.send(JSON.stringify({"type": "hello_world", "payload": ""}));
+            alert("socket opened");
+        });
+    </script>
 </body>
+
 </html>
