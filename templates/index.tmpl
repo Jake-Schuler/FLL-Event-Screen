@@ -12,8 +12,24 @@
     <script>
         var socket = new WebSocket(location.protocol == "http" ? "ws://" : "wss://" + location.host + "/ws");
         socket.addEventListener("open", (event) => {
-            socket.send(JSON.stringify({"type": "hello_world", "payload": ""}));
-            alert("socket opened");
+            console.log("WebSocket is open now.");
+            socket.send(JSON.stringify({"type": "get_info", "payload": ""}));
+        });
+        socket.addEventListener("message", (event) => {
+            console.log("Message from server ", event.data);
+            const message = JSON.parse(event.data);
+            if (message.type === "update") {
+                alert(message.payload)
+            }
+        });
+        function NextMatch() {
+            socket.send(JSON.stringify({"type": "next_match", "payload": ""}));
+        }
+        function PrevMatch() {
+            socket.send(JSON.stringify({"type": "prev_match", "payload": ""}));
+        }
+        socket.addEventListener("close", (event) => {
+            socket = new WebSocket(location.protocol == "http" ? "ws://" : "wss://" + location.host + "/ws");
         });
     </script>
 </body>

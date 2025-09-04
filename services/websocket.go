@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/jake-schuler/fll-event-screen/models"
 	"github.com/gorilla/websocket"
+	"github.com/jake-schuler/fll-event-screen/models"
 	"gorm.io/gorm"
 )
 
@@ -50,6 +50,13 @@ func HandleWebSocketConnection(conn *websocket.Conn, db *gorm.DB) {
 		if err != nil {
 			log.Printf("Error parsing WebSocket message: %v", err)
 			continue
+		}
+		switch wsMessage.Type {
+		case "get_info":
+			Manager.Broadcast(models.WebSocketMessage{
+				Type:    "update",
+				Payload: "test_update",
+			})
 		}
 	}
 	log.Println("WebSocket connection closed")
