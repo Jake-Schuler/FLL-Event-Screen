@@ -12,8 +12,8 @@ import (
 func WebSocketHandler(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Log the incoming request
-		log.Printf("WebSocket upgrade request from %s", c.ClientIP())
-		log.Printf("Headers: %v", c.Request.Header)
+		// log.Printf("WebSocket upgrade request from %s", c.ClientIP())
+		// log.Printf("Headers: %v", c.Request.Header)
 
 		conn, err := services.Upgrader.Upgrade(c.Writer, c.Request, nil)
 		if err != nil {
