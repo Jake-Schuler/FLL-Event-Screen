@@ -3,7 +3,9 @@ package main
 import (
 	"embed"
 	"html/template"
+	"log"
 	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -24,6 +26,15 @@ func main() {
 		panic("Error loading .env file")
 	}
 
+	switch os.Getenv("RUN_MODE") {
+	case "debug":
+		gin.SetMode(gin.DebugMode)
+	case "test":
+		gin.SetMode(gin.TestMode)
+	default:
+		gin.SetMode(gin.ReleaseMode)
+	}
+
 	// Initialize Google Sheets
 	config.InitSheets()
 
@@ -40,4 +51,7 @@ func main() {
 	if err := r.Run("localhost:8080"); err != nil {
 		panic("failed to start server")
 	}
+	log.Println("Server started on http://localhost:8080")
+	log.Println("Access audience display at http://localhost:8080/screen")
+	log.Println("Close with Ctrl+C")
 }
