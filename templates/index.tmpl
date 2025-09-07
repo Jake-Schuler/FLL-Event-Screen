@@ -4,32 +4,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ .title }}</title>
+    <title>{{ .title }} - {{ .event_name }}</title>
     <link rel="stylesheet" href="/assets/assets/pico.min.css">
+    <link rel="icon" type="image/x-icon" href="/static/logo.png">
 </head>
 
-<body>
+<body class="container">
+    <div
+        style="text-align: center; margin-top: 1rem; display: flex; flex-direction: row; align-items: center; justify-content: center;">
+        <img src="/static/logo.png" alt="Event Logo" style="height: 100px;" draggable="false">
+        <h1>{{ .event_name }}</h1>
+    </div>
+    <select>
+        <option disabled selected="selected">Select Round</option>
+        <option value="practice">Practice</option>
+        <option value="round1">Round 1</option>
+        <option value="round2">Round 2</option>
+        <option value="round3">Round 3</option>
+    </select>
+    <div id="matches-container">
+        <ul id="matches-list">
+        </ul>
+    </div>
     <script>
-        var socket = new WebSocket(location.protocol == "http" ? "ws://" : "wss://" + location.host + "/ws");
+        var select = document.querySelector("select");
+        select.addEventListener("change", (event) => {
+            var round = event.target.value;
+            console.log("Selected round: " + round);
+            socket.send(JSON.stringify({ "type": "get_info", "payload": round }));
+        });
+        var socket = new WebSocket((location.protocol === "http:" ? "ws://" : "wss://") + location.host + "/ws");
         socket.addEventListener("open", (event) => {
             console.log("WebSocket is open now.");
-            socket.send(JSON.stringify({"type": "get_info", "payload": ""}));
         });
         socket.addEventListener("message", (event) => {
             console.log("Message from server ", event.data);
             const message = JSON.parse(event.data);
-            if (message.type === "update") {
-                alert(message.payload)
+            if (message.type === "matches") {
+                message.payload.sort((a, b) => a.match_num - b.match_num);
+                var matchesList = document.getElementById("matches-list");
+                matchesList.innerHTML = ""; // Clear existing list
+                message.payload.forEach(match => {
+                    var listItem = document.createElement("li");
+                    listItem.innerHTML = `<p>Match ${match.match_num}: ${match.alliance_a} - ${match.alliance_a_name} vs. ${match.alliance_b} - ${match.alliance_b_name} on ${match.is_red_table == true ? "🔴 Red" : "🔵 Blue"} table <button onclick="setActiveMatch(${match.match_num})">Set Active</button></p>`;
+                    matchesList.appendChild(listItem);
+                });
             }
         });
-        function NextMatch() {
-            socket.send(JSON.stringify({"type": "next_match", "payload": ""}));
-        }
-        function PrevMatch() {
-            socket.send(JSON.stringify({"type": "prev_match", "payload": ""}));
+        function setActiveMatch(matchNum) {
+            var isPractice = document.querySelector("select").value === "practice";
+            socket.send(JSON.stringify({ "type": "set_active_match", "payload": { matchNum, isPractice } }));
         }
         socket.addEventListener("close", (event) => {
-            socket = new WebSocket(location.protocol == "http" ? "ws://" : "wss://" + location.host + "/ws");
+            setTimeout(() => {
+                socket = new WebSocket((location.protocol === "http:" ? "ws://" : "wss://") + location.host + "/ws");
+            }, 1000);
         });
     </script>
 </body>

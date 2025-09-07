@@ -4,12 +4,11 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/jake-schuler/fll-event-screen/services"
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
+	"github.com/jake-schuler/fll-event-screen/services"
 )
 
-func WebSocketHandler(db *gorm.DB) gin.HandlerFunc {
+func WebSocketHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Log the incoming request
 		// log.Printf("WebSocket upgrade request from %s", c.ClientIP())
@@ -23,6 +22,6 @@ func WebSocketHandler(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		// Handle the WebSocket connection using the service
-		services.HandleWebSocketConnection(conn, db)
+		services.HandleWebSocketConnection(conn)
 	}
 }

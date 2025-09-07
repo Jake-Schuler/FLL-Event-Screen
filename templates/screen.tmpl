@@ -1,11 +1,294 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ .title }}</title>
+    <title>{{ .title }} - {{ .event_name }}</title>
+    <link rel="icon" type="image/x-icon" href="/static/logo.png">
 </head>
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: Arial, sans-serif;
+        overflow: hidden;
+        background-color: #FF00FF;
+        color: white;
+    }
+
+    #red_table,
+    #blue_table {
+        display: none;
+    }
+
+    h1 {
+        margin: 0;
+        padding: 0;
+        font-weight: bold;
+    }
+
+    #red_table {
+        background-color: #830e12;
+        color: white;
+        text-align: center;
+    }
+
+    #red_alliance_a,
+    #red_alliance_b {
+        border-radius: 10px;
+        padding: 1rem;
+        background-color: #d01920;
+    }
+
+    #blue_table {
+        background-color: #004172;
+        color: white;
+        text-align: center;
+    }
+
+    #blue_alliance_a,
+    #blue_alliance_b {
+        border-radius: 10px;
+        padding: 1rem;
+        background-color: #0066b3;
+    }
+
+    .table {
+        width: 100%;
+        height: 100vh;
+        position: absolute;
+        top: 0;
+        left: 0;
+        display: flex;
+        flex-direction: row;
+        justify-content: space-around;
+        align-items: center;
+        box-sizing: border-box;
+        padding: 0 2rem;
+        transform: translateY(100%);
+    }
+
+    @keyframes tableSlideIn {
+        0% {
+            transform: translateY(100%);
+        }
+
+        100% {
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes tableSlideOut {
+        0% {
+            transform: translateY(0);
+        }
+
+        100% {
+            transform: translateY(-100%);
+        }
+    }
+
+    /* Table animation classes */
+    .table-slide-in {
+        animation: tableSlideIn 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+    }
+
+    .table-slide-out {
+        animation: tableSlideOut 1s cubic-bezier(0.55, 0.06, 0.68, 0.19) forwards;
+    }
+
+    /* Visible state for tables after animation */
+    .table-visible {
+        transform: translateY(0);
+    }
+
+    .team-number {
+        margin: 0;
+        padding: 50% 0 50% 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: fill-available;
+        height: 4vw;
+        width: 50vh;
+        position: relative;
+        overflow: hidden;
+    }
+
+    #match_number_red, #match_number_blue {
+        position: absolute;
+        top: 1rem;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 5vw;
+        font-weight: bold;
+        z-index: 10;
+    }
+    #infobar {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 100px;
+        background-image: linear-gradient(to right, #d01920, #0066b3);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        z-index: 20;
+        color: white;
+        font-size: 1rem;
+        font-weight: bold;
+        box-sizing: border-box;
+        padding: 0 2rem;
+        z-index: -1;
+    }
+
+    .infobar-left {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex: 0 0 auto;
+    }
+
+    .infobar-center {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: 1;
+        text-align: center;
+    }
+
+    .infobar-right {
+        display: flex;
+        align-items: center;
+        gap: 2rem;
+        flex: 0 0 auto;
+        justify-content: space-evenly;
+    }
+
+    .infobar-left img {
+        height: 80px;
+    }
+
+    .infobar-left h1,
+    .infobar-center h1,
+    .infobar-right h1 {
+        margin: 0;
+        white-space: nowrap;
+    }
+</style>
+
 <body>
-    
+    <div id="red_table" class="table">
+        <h1 id="red_alliance_a" class="team-number"></h1>
+        <h1 id="red_alliance_b" class="team-number"></h1>
+        <h1 id="match_number_red"></h1>
+    </div>
+    <div id="blue_table" class="table">
+        <h1 id="blue_alliance_a" class="team-number"></h1>
+        <h1 id="blue_alliance_b" class="team-number"></h1>
+        <h1 id="match_number_blue"></h1>
+    </div>
+    <div id="infobar">
+        <div class="infobar-left">
+            <img src="/static/logo.png" alt="Event Logo" draggable="false">
+            <h1>{{ .event_name }}</h1>
+        </div>
+        <div class="infobar-center">
+            <h1 id="match_info_match_number"></h1>
+        </div>
+        <div class="infobar-right">
+            <h1><span id="match_info_alliance_a"></span></h1>
+            <h1><span id="match_info_alliance_b"></span></h1>
+        </div>
+    </div>
 </body>
+<script>
+    var matches = [];
+    var socket = new WebSocket((location.protocol === "http:" ? "ws://" : "wss://") + location.host + "/ws");
+    socket.addEventListener("open", (event) => {
+        console.log("WebSocket is open now.");
+    });
+
+    socket.addEventListener("message", (event) => {
+        console.log("Message from server ", event.data);
+        const message = JSON.parse(event.data);
+        switch (message.type) {
+            case "matches":
+                matches = message.payload;
+                matches.sort((a, b) => a.match_num - b.match_num);
+                break;
+            case "set_active_match":
+                const activeMatch = matches.find(m => m.match_num === message.payload.matchNum);
+                // Update the UI with the active match information
+                var matchNumText = `${message.payload.isPractice ? "Practice" : "Match"} ${activeMatch.match_num}`;
+                document.getElementById("match_number_red").innerText = matchNumText;
+                document.getElementById("match_number_blue").innerText = matchNumText;
+                if (activeMatch.is_red_table) {
+                    document.getElementById("red_alliance_a").innerText = activeMatch.alliance_a + " " + activeMatch.alliance_a_name;
+                    document.getElementById("red_alliance_b").innerText = activeMatch.alliance_b + " " + activeMatch.alliance_b_name;
+                    document.getElementById("blue_alliance_a").innerText = "";
+                    document.getElementById("blue_alliance_b").innerText = "";
+                    document.getElementById("red_table").style.display = "flex";
+                    document.getElementById("blue_table").style.display = "none";
+                    slideInTable('red_table');
+                } else {
+                    document.getElementById("blue_alliance_a").innerText = activeMatch.alliance_a + " " + activeMatch.alliance_a_name;
+                    document.getElementById("blue_alliance_b").innerText = activeMatch.alliance_b + " " + activeMatch.alliance_b_name;
+                    document.getElementById("red_alliance_a").innerText = "";
+                    document.getElementById("red_alliance_b").innerText = "";
+                    document.getElementById("red_table").style.display = "none";
+                    document.getElementById("blue_table").style.display = "flex";
+                    slideInTable('blue_table');
+                }
+                setTimeout(() => {
+                    document.getElementById("match_info_match_number").innerText = `${message.payload.isPractice ? "Practice" : "Match"} ${activeMatch.match_num}`;
+                    document.getElementById("match_info_alliance_a").innerText = `Team A: ${activeMatch.alliance_a}`;
+                    document.getElementById("match_info_alliance_b").innerText = `Team B: ${activeMatch.alliance_b}`;
+                }, 4000);
+                setTimeout(() => {
+                    // Animate teams out
+                    slideOutTable();
+                }, 10000);
+                break;
+        }
+
+    });
+    socket.addEventListener("close", (event) => {
+        setTimeout(() => {
+            socket = new WebSocket((location.protocol === "http:" ? "ws://" : "wss://") + location.host + "/ws");
+        }, 1000);
+    });
+
+    // Animation control functions
+    function slideOutTable() {
+        const visibleTable = document.querySelector('.table.table-visible');
+        if (visibleTable) {
+            visibleTable.classList.remove('table-visible');
+            visibleTable.classList.add('table-slide-out');
+            // Hide after animation completes
+            setTimeout(() => {
+                visibleTable.style.display = "none";
+                visibleTable.classList.remove('table-slide-out');
+            }, 1000);
+        }
+    }
+
+    function slideInTable(tableId) {
+        const table = document.getElementById(tableId);
+        if (table) {
+            // Reset position and show
+            table.style.display = "flex";
+            table.classList.add('table-slide-in');
+
+            // Add visible class after animation to maintain position
+            setTimeout(() => {
+                table.classList.remove('table-slide-in');
+                table.classList.add('table-visible');
+            }, 1500);
+        }
+    }
+</script>
+
 </html>

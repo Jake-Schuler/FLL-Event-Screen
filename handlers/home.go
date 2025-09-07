@@ -1,14 +1,16 @@
 package handlers
 
 import (
+	"os"
+
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
-func HomeHandler(db *gorm.DB) gin.HandlerFunc {
+func HomeHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.HTML(200, "index.tmpl", gin.H{
-			"title": "FLL Event Screen - Dashboard",
+			"title":      "FLL Event Screen - Dashboard",
+			"event_name": os.Getenv("EVENT_NAME"),
 		})
 	}
 }

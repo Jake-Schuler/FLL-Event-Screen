@@ -28,6 +28,8 @@ go.work.sum
 # data files
 *.env
 *.db
+static/
+credentials.json
 
 
 # Editor/IDE

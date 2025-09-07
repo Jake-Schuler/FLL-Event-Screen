@@ -8,7 +8,6 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/jake-schuler/fll-event-screen/models"
-	"gorm.io/gorm"
 )
 
 // Global state variables to persist WebSocket state
@@ -23,7 +22,7 @@ var Upgrader = websocket.Upgrader{
 	},
 }
 
-func HandleWebSocketConnection(conn *websocket.Conn, db *gorm.DB) {
+func HandleWebSocketConnection(conn *websocket.Conn) {
 	defer func() {
 		Manager.RemoveConnection(conn)
 		conn.Close()
@@ -53,10 +52,35 @@ func HandleWebSocketConnection(conn *websocket.Conn, db *gorm.DB) {
 		}
 		switch wsMessage.Type {
 		case "get_info":
+			// Parse the schedule round from the payload
+			var round scheduleRound
+			if payload, ok := wsMessage.Payload.(string); ok {
+				switch payload {
+				case "practice":
+					round = practice
+				case "round1":
+					round = round1
+				case "round2":
+					round = round2
+				case "round3":
+					round = round3
+				default:
+					log.Printf("Unknown schedule round: %s, defaulting to practice", payload)
+					round = practice // default to practice if unknown
+				}
+			} else {
+				log.Printf("Payload is not a string, defaulting to practice. Payload: %v", wsMessage.Payload)
+				round = practice // default if payload is not a string
+			}
+
+			matches := ReadSchedule(round)
+
 			Manager.Broadcast(models.WebSocketMessage{
-				Type:    "update",
-				Payload: "test_update",
+				Type:    "matches",
+				Payload: matches,
 			})
+		case "set_active_match":
+			Manager.Broadcast(wsMessage)
 		}
 	}
 	log.Println("WebSocket connection closed")

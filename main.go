@@ -2,8 +2,8 @@ package main
 
 import (
 	"embed"
-	"net/http"
 	"html/template"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -24,8 +24,8 @@ func main() {
 		panic("Error loading .env file")
 	}
 
-	// Initialize database
-	db := config.InitDB()
+	// Initialize Google Sheets
+	config.InitSheets()
 
 	// Initialize Gin router
 	r := gin.Default()
@@ -34,10 +34,10 @@ func main() {
 	r.Static("/static", "./static")
 
 	// Setup routes
-	handlers.SetupRoutes(r, db)
+	handlers.SetupRoutes(r)
 
 	// Start server
-	if err := r.Run(":8080"); err != nil {
+	if err := r.Run("localhost:8080"); err != nil {
 		panic("failed to start server")
 	}
 }
