@@ -12,7 +12,6 @@
         body {
             margin: 0;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #0a0f3c;
             color: white;
             display: flex;
             flex-direction: column;
@@ -71,12 +70,14 @@
 </head>
 
 <body>
-
+    
     <h1 id="NoMatchesText">No Matches Available</h1>
 
     <div id="matches"></div>
 
     <script>
+        document.body.style.backgroundColor = "#{{ .background_color }}";
+
         var matches = [];
 
         var socket = new WebSocket((location.protocol === "http:" ? "ws://" : "wss://") + location.host + "/ws");
@@ -89,11 +90,11 @@
             console.log("Message from server ", event.data);
             const message = JSON.parse(event.data);
             switch (message.type) {
-            case ("matches"):
-                matches = message.payload.sort((a, b) => a.match_num - b.match_num);
-                showMatches();
-            case ("set_active_match"):
-                removeMatch(message.payload.matchNum)
+                case ("matches"):
+                    matches = message.payload.sort((a, b) => a.match_num - b.match_num);
+                    showMatches();
+                case ("set_active_match"):
+                    removeMatch(message.payload.matchNum)
             }
         }
         );
