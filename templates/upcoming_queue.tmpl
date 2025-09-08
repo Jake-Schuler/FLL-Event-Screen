@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ .title }} - {{ .event_name }}</title>
+    <link rel="icon" type="image/x-icon" href="/static/logo.png">
+
+    <style>
+        /* General styles */
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0a0f3c;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1#NoMatchesText {
+            color: white;
+            text-align: center;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2rem;
+        }
+
+        #matches {
+            width: 100%;
+            max-width: 800px;
+            padding: 2rem;
+            box-sizing: border-box;
+        }
+
+        .match {
+            background: #f4e300;
+            border: 4px solid white;
+            border-radius: 10px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 1.5rem;
+            color: #000;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            transition: transform 0.2s ease;
+        }
+
+        .match:hover {
+            transform: scale(1.02);
+        }
+
+        .match h2 {
+            margin-top: 0;
+        }
+
+        .table-indicator {
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        .table-indicator.red {
+            color: darkred;
+        }
+
+        .table-indicator.blue {
+            color: darkblue;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1 id="NoMatchesText">No Matches Available</h1>
+
+    <div id="matches"></div>
+
+    <script>
+        var matches = [];
+
+        var socket = new WebSocket((location.protocol === "http:" ? "ws://" : "wss://") + location.host + "/ws");
+
+        socket.addEventListener("open", (event) => {
+            console.log("WebSocket is open now.");
+        });
+
+        socket.addEventListener("message", (event) => {
+            console.log("Message from server ", event.data);
+            const message = JSON.parse(event.data);
+            switch (message.type) {
+            case ("matches"):
+                matches = message.payload.sort((a, b) => a.match_num - b.match_num);
+                showMatches();
+            case ("set_active_match"):
+                removeMatch(message.payload.matchNum)
+            }
+        }
+        );
+
+        socket.addEventListener("close", (event) => {
+            setTimeout(() => {
+                socket = new WebSocket((location.protocol === "http:" ? "ws://" : "wss://") + location.host + "/ws");
+            }, 1000);
+        });
+
+        function showMatches() {
+            const matchesDiv = document.getElementById("matches");
+            document.getElementById("NoMatchesText").style.display = "none";
+            matchesDiv.innerHTML = "";
+
+            matches.forEach(match => {
+                const tableColor = match.is_red_table ? '🔴 Red' : '🔵 Blue';
+                const tableClass = match.is_red_table ? 'red' : 'blue';
+
+                matchesDiv.innerHTML += `
+                    <div class="match" id="match-${match.match_num}">
+                        <h2>Match ${match.match_num}</h2>
+                        <p>${match.alliance_a} - ${match.alliance_a_name} (A)</p>
+                        <p>vs.</p>
+                        <p>${match.alliance_b} - ${match.alliance_b_name} (B)</p>
+                        <p class="table-indicator ${tableClass}">${tableColor} table</p>
+                    </div>
+                `;
+            });
+        }
+        function removeMatch(id) {
+            const matchElement = document.getElementById(`match-${id}`);
+            if (matchElement) {
+                matchElement.remove();
+            } else {
+                console.warn(`Match with id match-${id} not found.`);
+            }
+        }
+    </script>
+</body>
+
+</html>

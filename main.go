@@ -48,7 +48,7 @@ func main() {
 	handlers.SetupRoutes(r)
 
 	// Start server
-	if err := r.Run("localhost:8080"); err != nil {
+	if err := r.Run(os.Getenv("RUN_ADDRESS")); err != nil {
 		panic("failed to start server")
 	}
 	log.Println("Server started on http://localhost:8080")
