@@ -94,7 +94,7 @@
                     matches = message.payload.sort((a, b) => a.match_num - b.match_num);
                     showMatches();
                 case ("set_active_match"):
-                    removeMatch(message.payload.matchNum)
+                    queueMatch(message.payload.matchNum)
             }
         }
         );
@@ -125,12 +125,16 @@
                 `;
             });
         }
-        function removeMatch(id) {
-            const matchElement = document.getElementById(`match-${id}`);
-            if (matchElement) {
-                matchElement.remove();
+        function queueMatch(id) {
+            const currentMatchElement = document.getElementById(`match-${id}`)
+            const previousMatchElement = document.getElementById(`match-${id-1}`);
+            if (previousMatchElement) {
+                previousMatchElement.remove();
             } else {
                 console.warn(`Match with id match-${id} not found.`);
+            }
+            if (currentMatchElement) {
+                currentMatchElement.style.backgroundColor = "#add8e6"
             }
         }
     </script>
