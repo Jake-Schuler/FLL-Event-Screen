@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ .title }} - {{ .event_name }}</title>
+    <link rel="stylesheet" href="/assets/assets/pico.min.css">
+    <link rel="icon" type="image/x-icon" href="/static/logo.png">
+</head>
+
+<body>
+    <div id="timer" style="text-align: center; margin-top: 20vh;">
+    <h1 id="timer-display" style="font-size: 20rem;">00:00</h1>
+    </div>
+<div id="actions" style="text-align: center; margin-bottom: 20px; bottom: 10px; left: 50%; transform: translateX(-50%); position: absolute;">
+    <button id="show-timer">Show Timer</button>
+    <button id="start-timer">Start Timer</button>
+</div>
+<script>
+    var socket = new WebSocket((location.protocol === "http:" ? "ws://" : "wss://") + location.host + "/ws");
+
+    socket.addEventListener("close", function (event) {
+        console.log("WebSocket connection closed:", event);
+        setTimeout(function () {
+            socket = new WebSocket((location.protocol === "http:" ? "ws://" : "wss://") + location.host + "/ws");
+        }, 5000); // Retry after 5 seconds
+    });
+    const timerDisplay = document.getElementById("timer-display");
+    const startButton = document.getElementById("start-timer");
+    const showButton = document.getElementById("show-timer");
+
+    let timerInterval;
+    let timeLeft = 0;
+    let isRunning = false;
+
+    function updateTimerDisplay() {
+        const minutes = String(Math.floor(timeLeft / 60)).padStart(2, '0');
+        const seconds = String(timeLeft % 60).padStart(2, '0');
+        timerDisplay.textContent = `${minutes}:${seconds}`;
+    }
+
+    function startTimer() {
+        if (isRunning) return;
+        socket.send(JSON.stringify({ type: "start_timer", payload: {} }));
+        isRunning = true;
+        timerInterval = setInterval(() => {
+            if (timeLeft > 0) {
+                timeLeft--;
+                updateTimerDisplay();
+            } else {
+                clearInterval(timerInterval);
+                isRunning = false;
+                // Timer finished actions
+                document.getElementById("timer-display").style.color = "red";
+                document.body.style.backgroundColor = "black";
+                setTimeout(() => {
+                    document.getElementById("timer").style.display = "none";
+                    document.getElementById("matches").style.display = "block";
+                    document.getElementById("timer-display").style.color = "white";
+                    document.body.style.backgroundColor = "#{{ .background_color }}";
+                }, 5000);
+            }
+        }, 1000);
+    }
+
+    function showTimer() {
+        socket.send(JSON.stringify({ type: "show_timer", payload: {} }));
+    }
+
+    startButton.addEventListener("click", () => {
+        if (timeLeft === 0) {
+            timeLeft = 150; // Set default time to 2:30
+            updateTimerDisplay();
+        }
+        startTimer();
+    });
+
+    showButton.addEventListener("click", showTimer);
+
+    // Initialize display
+    updateTimerDisplay();
+</script>
+</body>
+
+</html>

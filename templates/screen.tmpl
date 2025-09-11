@@ -162,6 +162,14 @@
         text-align: center;
     }
 
+    .infobar-center-right {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+        margin-right: 5rem;
+    }
+
     .infobar-right {
         display: flex;
         align-items: center;
@@ -200,6 +208,9 @@
         </div>
         <div class="infobar-center">
             <h1 id="match_info_match_number"></h1>
+        </div>
+        <div class="infobar-center-right">
+            <h1 id="timer-display"></h1>
         </div>
         <div class="infobar-right">
             <h1><span id="match_info_alliance_a"></span></h1>
@@ -249,11 +260,15 @@
                         document.getElementById("match_info_match_number").innerText = `${message.payload.isPractice ? "Practice" : "Match"} ${activeMatch.match_num}`;
                         document.getElementById("match_info_alliance_a").innerText = `Team A: ${activeMatch.alliance_a}`;
                         document.getElementById("match_info_alliance_b").innerText = `Team B: ${activeMatch.alliance_b}`;
+                        document.getElementById("timer-display").innerText = "2:30";
                     }, 4000);
                     setTimeout(() => {
                         // Animate teams out
                         slideOutTable();
                     }, 10000);
+                    break;
+                case "start_timer":
+                    startTimer();
                     break;
             }
 
@@ -291,6 +306,29 @@
                     table.classList.add('table-visible');
                 }, 1500);
             }
+        }
+
+        function startTimer() {
+            let timeLeft = 150; // 2 minutes and 30 seconds
+            document.getElementById("timer-display").style.color = "white";
+            const timerInterval = setInterval(() => {
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    document.getElementById("timer-display").style.color = "red";
+                    document.body.style.backgroundColor = "black";
+                    setTimeout(() => {
+                        document.getElementById("timer").style.display = "none";
+                        document.getElementById("matches").style.display = "block";
+                        document.getElementById("timer-display").style.color = "white";
+                        document.body.style.backgroundColor = "#{{ .background_color }}";
+                    }, 5000);
+                } else {
+                    const minutes = String(Math.floor(timeLeft / 60)).padStart(2, '0');
+                    const seconds = String(timeLeft % 60).padStart(2, '0');
+                    document.getElementById("timer-display").textContent = `${minutes}:${seconds}`;
+                }
+                timeLeft--;
+            }, 1000);
         }
     </script>
 </body>

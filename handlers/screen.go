@@ -12,16 +12,16 @@ func ScreenHandler() gin.HandlerFunc {
 		backgroundColor := c.Query("background")
 		if backgroundColor == "" {
 			switch view {
-			case "queue":
+			case "table":
 				backgroundColor = "0a0f3c"
 			default:
 				backgroundColor = "FF00FF"
 			}
 		}
 		switch view {
-		case "queue":
-			c.HTML(200, "upcoming_queue.tmpl", gin.H{
-				"title":            "FLL Event Screen - Queue Screen",
+		case "table":
+			c.HTML(200, "table_screen.tmpl", gin.H{
+				"title":            "FLL Event Screen - Table Screen",
 				"event_name":       os.Getenv("EVENT_NAME"),
 				"background_color": backgroundColor,
 			})

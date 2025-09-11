@@ -81,6 +81,10 @@ func HandleWebSocketConnection(conn *websocket.Conn) {
 			})
 		case "set_active_match":
 			Manager.Broadcast(wsMessage)
+		case "show_timer":
+			Manager.Broadcast(wsMessage)
+		case "start_timer":
+			Manager.Broadcast(wsMessage)
 		}
 	}
 	log.Println("WebSocket connection closed")

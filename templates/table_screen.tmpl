@@ -66,14 +66,28 @@
         .table-indicator.blue {
             color: darkblue;
         }
+
+        #timer {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            font-size: 20vw;
+        }
     </style>
 </head>
 
 <body>
-    
+
     <h1 id="NoMatchesText">No Matches Available</h1>
 
     <div id="matches"></div>
+
+    <div id="timer" style="display: none;">
+        <h1 id="timer-display">2:30</h1>
+    </div>
 
     <script>
         document.body.style.backgroundColor = "#{{ .background_color }}";
@@ -93,8 +107,17 @@
                 case ("matches"):
                     matches = message.payload.sort((a, b) => a.match_num - b.match_num);
                     showMatches();
+                    break;
                 case ("set_active_match"):
-                    queueMatch(message.payload.matchNum)
+                    queueMatch(message.payload.matchNum);
+                    break;
+                case ("show_timer"):
+                    document.getElementById("timer").style.display = "block";
+                    document.getElementById("matches").style.display = "none";
+                    break;
+                case ("start_timer"):
+                    startTimer();
+                    break;
             }
         }
         );
@@ -127,7 +150,7 @@
         }
         function queueMatch(id) {
             const currentMatchElement = document.getElementById(`match-${id}`)
-            const previousMatchElement = document.getElementById(`match-${id-1}`);
+            const previousMatchElement = document.getElementById(`match-${id - 1}`);
             if (previousMatchElement) {
                 previousMatchElement.remove();
             } else {
@@ -136,6 +159,38 @@
             if (currentMatchElement) {
                 currentMatchElement.style.backgroundColor = "#add8e6"
             }
+        }
+
+        function startTimer() {
+            let timeLeft = 150;
+            const timerDisplay = document.getElementById("timer-display");
+
+            const timerInterval = setInterval(() => {
+                const minutes = Math.floor(timeLeft / 60);
+                const seconds = timeLeft % 60;
+                timerDisplay.textContent = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    document.getElementById("timer-display").style.color = "red";
+                    document.body.style.backgroundColor = "black";
+                    setTimeout(() => {
+                        document.getElementById("timer").style.display = "none";
+                        document.getElementById("matches").style.display = "block";
+                        document.getElementById("timer-display").style.color = "white";
+                        document.body.style.backgroundColor = "#{{ .background_color }}";
+                    }, 5000);
+                }
+
+                timeLeft--;
+            }, 1000);
+        }
+
+        function resetTimer() {
+            timeLeft = 150;
+            document.getElementById("timer-display").textContent = "2:30";
+            document.getElementById("timer-display").style.color = "white";
+            document.body.style.backgroundColor = "#{{ .background_color }}";
         }
     </script>
 </body>
