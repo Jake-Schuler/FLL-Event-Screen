@@ -273,6 +273,9 @@
                 case "start_timer":
                     startTimer();
                     break;
+                case "play_test_sound":
+                    playTestSound(message.payload.soundType);
+                    break;
             }
 
         });
@@ -330,6 +333,19 @@
                 }
                 timeLeft--;
             }, 1000);
+        }
+        function playTestSound(soundType) {
+            switch (soundType) {
+                case "START":
+                    startSound.play();
+                    break;
+                case "WARNING":
+                    warningSound.play();
+                    break;
+                case "END":
+                    endSound.play();
+                    break;
+            }
         }
     </script>
 </body>

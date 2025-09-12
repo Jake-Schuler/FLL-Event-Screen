@@ -34,7 +34,7 @@
         <img src="/static/logo.png" alt="Event Logo" style="height: 100px;" draggable="false">
         <h1>{{ .event_name }}</h1>
     </div>
-    <select>
+    <select id="round-select">
         <option disabled selected="selected">Select Round</option>
         <option value="practice">Practice</option>
         <option value="round1">Round 1</option>
@@ -51,9 +51,16 @@
         <button id="next-match">Next Match</button>
     </div>
     <a href="/screen" target="_blank" style="bottom: 10px; right: 10px; position: fixed;">Open event screen</a>
+    <select id="sound-select" style="position: fixed; bottom: 10px; left: 10px; width: 200px;">
+        <option disabled selected="selected">Select Sound to Test</option>
+        <option value="START">Start Sound</option>
+        <option value="WARNING">Warning Sound</option>
+        <option value="END">End Sound</option>
+    </select>
     <script>
         var matches = [];
-        var select = document.querySelector("select");
+        var select = document.getElementById("round-select");
+        var soundSelect = document.getElementById("sound-select");
         select.addEventListener("change", (event) => {
             var round = event.target.value;
             console.log("Selected round: " + round);
@@ -103,6 +110,10 @@
             setTimeout(() => {
                 socket = new WebSocket((location.protocol === "http:" ? "ws://" : "wss://") + location.host + "/ws");
             }, 1000);
+        });
+        soundSelect.addEventListener("change", (event) => {
+            var soundType = event.target.value;
+            socket.send(JSON.stringify({ "type": "play_test_sound", "payload": { soundType } }));
         });
     </script>
 </body>
