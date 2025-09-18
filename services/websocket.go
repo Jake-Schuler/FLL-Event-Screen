@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/jake-schuler/fll-event-screen/models"
@@ -84,7 +85,10 @@ func HandleWebSocketConnection(conn *websocket.Conn) {
 		case "show_timer":
 			Manager.Broadcast(wsMessage)
 		case "start_timer":
-			Manager.Broadcast(wsMessage)
+			Manager.Broadcast(models.WebSocketMessage{
+				Type:    "start_timer",
+				Payload: time.Now().Add(time.Second * 149),
+			})
 		case "play_test_sound":
 			Manager.Broadcast(wsMessage)
 		}

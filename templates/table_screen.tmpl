@@ -116,7 +116,7 @@
                     document.getElementById("matches").style.display = "none";
                     break;
                 case ("start_timer"):
-                    startTimer();
+                    startTimer(new Date(message.payload));
                     break;
             }
         }
@@ -161,11 +161,12 @@
             }
         }
 
-        function startTimer() {
-            let timeLeft = 150;
+        function startTimer(endTime) {
+            let timeLeft = endTime - Date.now() > 0 ? Math.ceil((endTime - Date.now()) / 1000) : 0;
             const timerDisplay = document.getElementById("timer-display");
 
             const timerInterval = setInterval(() => {
+                timeLeft = endTime - Date.now() > 0 ? Math.ceil((endTime - Date.now()) / 1000) : 0;
                 const minutes = Math.floor(timeLeft / 60);
                 const seconds = timeLeft % 60;
                 timerDisplay.textContent = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
@@ -181,9 +182,7 @@
                         document.body.style.backgroundColor = "#{{ .background_color }}";
                     }, 5000);
                 }
-
-                timeLeft--;
-            }, 1000);
+            }, 100);
         }
 
         function resetTimer() {

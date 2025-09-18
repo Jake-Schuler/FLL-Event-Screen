@@ -26,6 +26,19 @@
             socket = new WebSocket((location.protocol === "http:" ? "ws://" : "wss://") + location.host + "/ws");
         }, 5000); // Retry after 5 seconds
     });
+
+    socket.addEventListener("message", function (event) {
+        const message = JSON.parse(event.data);
+        console.log("Message from server:", message);
+
+        switch (message.type) {
+            case "start_timer":
+                startTimer(new Date(message.payload));
+                break;
+            default:
+                console.log("Unknown message type:", message.type);
+        }
+    });
     const timerDisplay = document.getElementById("timer-display");
     const startButton = document.getElementById("start-timer");
     const showButton = document.getElementById("show-timer");
@@ -40,13 +53,12 @@
         timerDisplay.textContent = `${minutes}:${seconds}`;
     }
 
-    function startTimer() {
+    function startTimer(endTime) {
         if (isRunning) return;
-        socket.send(JSON.stringify({ type: "start_timer", payload: {} }));
         isRunning = true;
         timerInterval = setInterval(() => {
+            timeLeft = endTime - Date.now() > 0 ? Math.ceil((endTime - Date.now()) / 1000) : 0;
             if (timeLeft > 0) {
-                timeLeft--;
                 updateTimerDisplay();
             } else {
                 clearInterval(timerInterval);
@@ -61,7 +73,7 @@
                     document.body.style.backgroundColor = "#{{ .background_color }}";
                 }, 5000);
             }
-        }, 1000);
+        }, 100);
     }
 
     function showTimer() {
@@ -73,7 +85,7 @@
             timeLeft = 150; // Set default time to 2:30
             updateTimerDisplay();
         }
-        startTimer();
+        socket.send(JSON.stringify({ type: "start_timer", payload: {} }));
     });
 
     showButton.addEventListener("click", showTimer);

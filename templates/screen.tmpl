@@ -271,7 +271,7 @@
                     }, 10000);
                     break;
                 case "start_timer":
-                    startTimer();
+                    startTimer(new Date(message.payload));
                     break;
                 case "play_test_sound":
                     playTestSound(message.payload.soundType);
@@ -314,11 +314,12 @@
             }
         }
 
-        function startTimer() {
-            let timeLeft = 150; // 2 minutes and 30 seconds
+        function startTimer(endTime) {
+            let timeLeft = endTime - Date.now() > 0 ? Math.ceil((endTime - Date.now()) / 1000) : 0;
             startSound.play();
             document.getElementById("timer-display").style.color = "white";
             const timerInterval = setInterval(() => {
+                timeLeft = endTime - Date.now() > 0 ? Math.ceil((endTime - Date.now()) / 1000) : 0;
                 if (timeLeft == 30) {
                     warningSound.play();
                 }
@@ -330,9 +331,8 @@
                     const minutes = String(Math.floor(timeLeft / 60)).padStart(2, '0');
                     const seconds = String(timeLeft % 60).padStart(2, '0');
                     document.getElementById("timer-display").textContent = `${minutes}:${seconds}`;
-                }
-                timeLeft--;
-            }, 1000);
+                };
+            }, 100);
         }
         function playTestSound(soundType) {
             switch (soundType) {
