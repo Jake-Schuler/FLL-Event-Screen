@@ -46,8 +46,10 @@ func main() {
 
 	// Setup routes
 	handlers.SetupRoutes(r)
-
 	// Start server
+	if os.Getenv(`RUN_ADDRESS`) == "" {
+		panic("No RUN_ADDRESS set")
+	}
 	if err := r.Run(os.Getenv("RUN_ADDRESS")); err != nil {
 		panic("failed to start server")
 	}

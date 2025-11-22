@@ -13,6 +13,7 @@ func ScreenHandler() gin.HandlerFunc {
 		if backgroundColor == "" {
 			switch view {
 			case "table":
+			case "timer":
 				backgroundColor = "0a0f3c"
 			default:
 				backgroundColor = "FF00FF"
@@ -22,6 +23,12 @@ func ScreenHandler() gin.HandlerFunc {
 		case "table":
 			c.HTML(200, "table_screen.tmpl", gin.H{
 				"title":            "FLL Event Screen - Table Screen",
+				"event_name":       os.Getenv("EVENT_NAME"),
+				"background_color": backgroundColor,
+			})
+		case "timer":
+			c.HTML(200, "timer_screen.tmpl", gin.H{
+				"title":            "FLL Event Screen - Timer Screen",
 				"event_name":       os.Getenv("EVENT_NAME"),
 				"background_color": backgroundColor,
 			})

@@ -34,13 +34,7 @@
         <img src="/static/logo.png" alt="Event Logo" style="height: 100px;" draggable="false">
         <h1>{{ .event_name }}</h1>
     </div>
-    <select id="round-select">
-        <option disabled selected="selected">Select Round</option>
-        <option value="practice">Practice</option>
-        <option value="round1">Round 1</option>
-        <option value="round2">Round 2</option>
-        <option value="round3">Round 3</option>
-    </select>
+    <!-- Round selection removed: index will auto-load the full schedule -->
     <div id="current-match">
         <h2 id="current-match-title">No match selected</h2>
         <p id="current-match-details"></p>
@@ -59,23 +53,22 @@
     </select>
     <script>
         var matches = [];
-        var select = document.getElementById("round-select");
         var soundSelect = document.getElementById("sound-select");
-        select.addEventListener("change", (event) => {
-            var round = event.target.value;
-            console.log("Selected round: " + round);
-            socket.send(JSON.stringify({ "type": "get_info", "payload": round }));
-        });
         var socket = new WebSocket((location.protocol === "http:" ? "ws://" : "wss://") + location.host + "/ws");
         socket.addEventListener("open", (event) => {
             console.log("WebSocket is open now.");
+            // Request full schedule (no round selection required)
+            socket.send(JSON.stringify({ "type": "get_info", "payload": "" }));
         });
         socket.addEventListener("message", (event) => {
             console.log("Message from server ", event.data);
             const message = JSON.parse(event.data);
             if (message.type === "matches") {
-                matches = message.payload.sort((a, b) => a.match_num - b.match_num);
-                showMatch(matches[0].match_num);
+                // preserve sheet order (server returns sheet order)
+                matches = message.payload;
+                if (matches.length > 0) {
+                    showMatch(matches[0].match_num);
+                }
             }
         });
         function previousMatch(matchNum) {
@@ -86,8 +79,8 @@
             }
         }
         function setActiveMatch(matchNum) {
-            var isPractice = document.querySelector("select").value === "practice";
-            socket.send(JSON.stringify({ "type": "set_active_match", "payload": { matchNum, isPractice } }));
+            // No round selection: send only matchNum and let server/clients interpret as needed
+            socket.send(JSON.stringify({ "type": "set_active_match", "payload": { matchNum } }));
         }
         function nextMatch(matchNum) {
             var currentIndex = matches.findIndex(m => m.match_num === matchNum);
@@ -99,7 +92,7 @@
         function showMatch(matchNum) {
             var match = matches.find(m => m.match_num === matchNum);
             if (match) {
-                document.getElementById("current-match-title").innerText = (document.querySelector("select").value === "practice" ? "Practice " : "Match ") + match.match_num;
+                document.getElementById("current-match-title").innerText = "Match " + match.match_num;
                 document.getElementById("current-match-details").innerText = match.alliance_a + " - " + match.alliance_a_name + " vs. " + match.alliance_b + " - " + match.alliance_b_name + " on " + (match.is_red_table == true ? "🔴 Red" : "🔵 Blue") + " table";
                 document.getElementById("set-match").onclick = () => setActiveMatch(match.match_num);
                 document.getElementById("previous-match").onclick = () => previousMatch(match.match_num);
