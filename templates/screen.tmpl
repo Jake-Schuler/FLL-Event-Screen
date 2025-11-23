@@ -218,11 +218,13 @@
         </div>
     </div>
     <script>
+        document.body.style.backgroundColor = "#{{ .background_color }}";
         const startSound = new Audio("/assets/assets/start.mp3");
         const warningSound = new Audio("/assets/assets/warning.mp3");
         const endSound = new Audio("/assets/assets/end.mp3");
-        document.body.style.backgroundColor = "#{{ .background_color }}";
         var matches = [];
+        var timerInterval = null;
+        var timeLeft = 150; // default 2:30 in seconds
         var socket = new WebSocket((location.protocol === "http:" ? "ws://" : "wss://") + location.host + "/ws");
         socket.addEventListener("open", (event) => {
             console.log("WebSocket is open now.");
@@ -263,7 +265,7 @@
                         document.getElementById("match_info_match_number").innerText = `${message.payload.isPractice ? "Practice" : "Match"} ${activeMatch.match_num}`;
                         document.getElementById("match_info_alliance_a").innerText = `Team A: ${activeMatch.alliance_a}`;
                         document.getElementById("match_info_alliance_b").innerText = `Team B: ${activeMatch.alliance_b}`;
-                        document.getElementById("timer-display").innerText = "2:30";
+                        document.getElementById("timer-display").innerText = formatTime(timeLeft);
                     }, 4000);
                     setTimeout(() => {
                         // Animate teams out
@@ -271,7 +273,7 @@
                     }, 10000);
                     break;
                 case "start_timer":
-                    startTimer(new Date(message.payload));
+                    startTimer(new Date(message.payload.endTime));
                     break;
                 case "play_test_sound":
                     playTestSound(message.payload.soundType);
@@ -314,26 +316,53 @@
             }
         }
 
+        function formatTime(s) {
+            const minutes = Math.floor(s / 60);
+            const seconds = s % 60;
+            return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+        }
+
         function startTimer(endTime) {
-            let timeLeft = endTime - Date.now() > 0 ? Math.ceil((endTime - Date.now()) / 1000) : 0;
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+
+            timeLeft = Math.max(0, Math.ceil((endTime - Date.now()) / 1000));
+            const timerDisplay = document.getElementById("timer-display");
+            timerDisplay.textContent = formatTime(timeLeft);
+            timerDisplay.style.color = "white";
             startSound.play();
-            document.getElementById("timer-display").style.color = "white";
-            const timerInterval = setInterval(() => {
-                timeLeft = endTime - Date.now() > 0 ? Math.ceil((endTime - Date.now()) / 1000) : 0;
+
+            timerInterval = setInterval(() => {
+                timeLeft = Math.max(0, Math.ceil((endTime - Date.now()) / 1000));
+                timerDisplay.textContent = formatTime(timeLeft);
                 if (timeLeft == 30) {
                     warningSound.play();
                 }
                 if (timeLeft <= 0) {
-                    endSound.play();
                     clearInterval(timerInterval);
-                    document.getElementById("timer-display").textContent = "00:00";
-                } else {
-                    const minutes = String(Math.floor(timeLeft / 60)).padStart(2, '0');
-                    const seconds = String(timeLeft % 60).padStart(2, '0');
-                    document.getElementById("timer-display").textContent = `${minutes}:${seconds}`;
-                };
-            }, 100);
+                    timerInterval = null;
+                    endSound.play();
+                    timerDisplay.style.color = "red";
+                    setTimeout(() => {
+                        resetTimer();
+                    }, 5000);
+                }
+            }, 1000);
         }
+
+        function resetTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            timeLeft = 150;
+            document.getElementById("timer-display").textContent = formatTime(timeLeft);
+            document.getElementById("timer-display").style.color = "white";
+            document.body.style.backgroundColor = "#{{ .background_color }}";
+        }
+
         function playTestSound(soundType) {
             switch (soundType) {
                 case "START":
