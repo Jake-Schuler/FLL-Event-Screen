@@ -76,7 +76,7 @@
             timeLeft = 150; // Set default time to 2:30
             updateTimerDisplay();
         }
-        socket.send(JSON.stringify({ type: "start_timer", payload: {"endTime": Date.now() + 1000 * 150} }));
+        socket.send(JSON.stringify({ type: "start_timer", payload: {"endTime": Date.now() + 1000 * 149} }));
     });
 
     showButton.addEventListener("click", showTimer);
