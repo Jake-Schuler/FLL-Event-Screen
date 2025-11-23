@@ -38,14 +38,16 @@
         <h1 id="timer-display">2:30</h1>
     </div>
 
-    <div id="match">
+    <!-- <div id="match">
         <h3></h3>
-    </div>
+    </div> -->
 
     <script>
         document.body.style.backgroundColor = "#{{ .background_color }}";
 
         var matches = [];
+        var timerInterval = null;
+        var timeLeft = 150; // default 2:30 in seconds
 
         var socket = new WebSocket((location.protocol === "http:" ? "ws://" : "wss://") + location.host + "/ws");
 
@@ -57,18 +59,17 @@
             console.log("Message from server ", event.data);
             const message = JSON.parse(event.data);
             switch (message.type) {
-                case ("matches"):
+                case "matches":
                     matches = message.payload.sort((a, b) => a.match_num - b.match_num);
                     break;
-                case ("set_active_match"):
+                case "set_active_match":
                     setActiveMatch(message.payload);
                     break;
-                case ("start_timer"):
-                    startTimer(new Date(message.payload));
+                case "start_timer":
+                    startTimer(new Date(message.payload.endTime));
                     break;
             }
-        }
-        );
+        });
 
         socket.addEventListener("close", (event) => {
             setTimeout(() => {
@@ -76,29 +77,54 @@
             }, 1000);
         });
 
-        function startTimer(endTime) {
-            let timeLeft = endTime - Date.now() > 0 ? Math.ceil((endTime - Date.now()) / 1000) : 0;
-            const timerDisplay = document.getElementById("timer-display");
+        function formatTime(s) {
+            const minutes = Math.floor(s / 60);
+            const seconds = s % 60;
+            return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+        }
 
-            const timerInterval = setInterval(() => {
-                timeLeft = endTime - Date.now() > 0 ? Math.ceil((endTime - Date.now()) / 1000) : 0;
-                const minutes = Math.floor(timeLeft / 60);
-                const seconds = timeLeft % 60;
-                timerDisplay.textContent = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
-            }, 100);
+        function startTimer(endTime) {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+
+            timeLeft = Math.max(0, Math.ceil((endTime - Date.now()) / 1000));
+            const timerDisplay = document.getElementById("timer-display");
+            timerDisplay.textContent = formatTime(timeLeft);
+            timerDisplay.style.color = "white";
+
+            timerInterval = setInterval(() => {
+                timeLeft = Math.max(0, Math.ceil((endTime - Date.now()) / 1000));
+                timerDisplay.textContent = formatTime(timeLeft);
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    timerInterval = null;
+                    timerDisplay.style.color = "red";
+                    setTimeout(() => {
+                        resetTimer();
+                    }, 5000);
+                }
+            }, 1000);
         }
 
         function resetTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
             timeLeft = 150;
-            document.getElementById("timer-display").textContent = "2:30";
+            document.getElementById("timer-display").textContent = formatTime(timeLeft);
             document.getElementById("timer-display").style.color = "white";
             document.body.style.backgroundColor = "#{{ .background_color }}";
         }
 
         function setActiveMatch(matchNum) {
             const match = matches.find(m => m.match_num === matchNum);
+            const matchEl = document.getElementById("match");
+            if (!matchEl) return;
             if (match) {
-                document.getElementById("match").innerHTML = `<h2>${match.alliance_a} - ${match.alliance_a_name} vs. ${match.alliance_b} - ${match.alliance_b_name} on ${match.is_red_table ? '🔴 Red' : '🔵 Blue'} table</h2>`;
+                matchEl.innerHTML = `<h2>${match.alliance_a} - ${match.alliance_a_name} vs. ${match.alliance_b} - ${match.alliance_b_name} on ${match.is_red_table ? '🔴 Red' : '🔵 Blue'} table</h2>`;
             }
         }
 

@@ -33,7 +33,7 @@
 
         switch (message.type) {
             case "start_timer":
-                startTimer(new Date(message.payload));
+                startTimer(new Date(message.payload.endTime));
                 break;
             default:
                 console.log("Unknown message type:", message.type);
@@ -64,8 +64,6 @@
                 clearInterval(timerInterval);
                 isRunning = false;
                 // Timer finished actions
-                document.getElementById("timer-display").style.color = "red";
-                document.body.style.backgroundColor = "black";
         }}, 100);
     }
 
@@ -78,7 +76,7 @@
             timeLeft = 150; // Set default time to 2:30
             updateTimerDisplay();
         }
-        socket.send(JSON.stringify({ type: "start_timer", payload: {} }));
+        socket.send(JSON.stringify({ type: "start_timer", payload: {"endTime": Date.now() + 1000 * 150} }));
     });
 
     showButton.addEventListener("click", showTimer);
