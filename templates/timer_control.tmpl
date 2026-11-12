@@ -18,27 +18,29 @@
     <button id="start-timer">Start Timer</button>
 </div>
 <script>
-    var socket = new WebSocket((location.protocol === "http:" ? "ws://" : "wss://") + location.host + "/ws");
+    var socket = null;
 
-    socket.addEventListener("close", function (event) {
-        console.log("WebSocket connection closed:", event);
-        setTimeout(function () {
-            socket = new WebSocket((location.protocol === "http:" ? "ws://" : "wss://") + location.host + "/ws");
-        }, 5000); // Retry after 5 seconds
-    });
+    function connectSocket() {
+        socket = new WebSocket((location.protocol === "http:" ? "ws://" : "wss://") + location.host + "/ws");
 
-    socket.addEventListener("message", function (event) {
-        const message = JSON.parse(event.data);
-        console.log("Message from server:", message);
+        socket.addEventListener("close", function () {
+            socket = null;
+            setTimeout(connectSocket, 5000);
+        }, { once: true });
 
-        switch (message.type) {
-            case "start_timer":
-                startTimer(new Date(message.payload.endTime));
-                break;
-            default:
-                console.log("Unknown message type:", message.type);
-        }
-    });
+        socket.addEventListener("message", function (event) {
+            try {
+                const message = JSON.parse(event.data);
+                if (message.type === "start_timer" && message.payload && message.payload.endTime) {
+                    startTimer(new Date(message.payload.endTime));
+                }
+            } catch (error) {
+                console.error("Invalid WebSocket message:", error);
+            }
+        });
+    }
+
+    connectSocket();
     const timerDisplay = document.getElementById("timer-display");
     const startButton = document.getElementById("start-timer");
     const showButton = document.getElementById("show-timer");
@@ -54,7 +56,8 @@
     }
 
     function startTimer(endTime) {
-        if (isRunning) return;
+        if (!(endTime instanceof Date) || Number.isNaN(endTime.getTime())) return;
+        if (timerInterval) clearInterval(timerInterval);
         isRunning = true;
         timerInterval = setInterval(() => {
             timeLeft = endTime - Date.now() > 0 ? Math.ceil((endTime - Date.now()) / 1000) : 0;
@@ -68,7 +71,9 @@
     }
 
     function showTimer() {
-        socket.send(JSON.stringify({ type: "show_timer", payload: {} }));
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({ type: "show_timer", payload: {} }));
+        }
     }
 
     startButton.addEventListener("click", () => {
@@ -76,7 +81,9 @@
             timeLeft = 150; // Set default time to 2:30
             updateTimerDisplay();
         }
-        socket.send(JSON.stringify({ type: "start_timer", payload: {"endTime": Date.now() + 1000 * 149} }));
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({ type: "start_timer", payload: {"endTime": Date.now() + 1000 * 150} }));
+        }
     });
 
     showButton.addEventListener("click", showTimer);

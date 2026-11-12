@@ -94,15 +94,15 @@
 
         var matches = [];
 
-        var socket = new WebSocket((location.protocol === "http:" ? "ws://" : "wss://") + location.host + "/ws");
+        var socket = null;
 
-        socket.addEventListener("open", (event) => {
-            console.log("WebSocket is open now.");
-        });
-
-        socket.addEventListener("message", (event) => {
-            console.log("Message from server ", event.data);
-            const message = JSON.parse(event.data);
+        function connectSocket() {
+            socket = new WebSocket((location.protocol === "http:" ? "ws://" : "wss://") + location.host + "/ws");
+            socket.addEventListener("open", () => console.log("WebSocket is open now."));
+            socket.addEventListener("message", (event) => {
+                try {
+                    console.log("Message from server ", event.data);
+                    const message = JSON.parse(event.data);
             switch (message.type) {
                 case ("matches"):
                     matches = message.payload.sort((a, b) => a.match_num - b.match_num);
@@ -116,17 +116,22 @@
                     document.getElementById("matches").style.display = "none";
                     break;
                 case ("start_timer"):
-                    startTimer(new Date(message.payload));
+                    if (message.payload && message.payload.endTime) {
+                        startTimer(new Date(message.payload.endTime));
+                    }
                     break;
             }
+                } catch (error) {
+                    console.error("Invalid WebSocket message:", error);
+                }
+            });
+            socket.addEventListener("close", () => setTimeout(connectSocket, 1000), { once: true });
         }
-        );
 
-        socket.addEventListener("close", (event) => {
-            setTimeout(() => {
-                socket = new WebSocket((location.protocol === "http:" ? "ws://" : "wss://") + location.host + "/ws");
-            }, 1000);
-        });
+        connectSocket();
+
+        let timerInterval = null;
+        let timeLeft = 150;
 
         function showMatches() {
             const matchesDiv = document.getElementById("matches");
@@ -162,10 +167,16 @@
         }
 
         function startTimer(endTime) {
-            let timeLeft = endTime - Date.now() > 0 ? Math.ceil((endTime - Date.now()) / 1000) : 0;
+            if (!(endTime instanceof Date) || Number.isNaN(endTime.getTime())) {
+                return;
+            }
+            if (timerInterval) {
+                clearInterval(timerInterval);
+            }
+            timeLeft = endTime - Date.now() > 0 ? Math.ceil((endTime - Date.now()) / 1000) : 0;
             const timerDisplay = document.getElementById("timer-display");
 
-            const timerInterval = setInterval(() => {
+            timerInterval = setInterval(() => {
                 timeLeft = endTime - Date.now() > 0 ? Math.ceil((endTime - Date.now()) / 1000) : 0;
                 const minutes = Math.floor(timeLeft / 60);
                 const seconds = timeLeft % 60;
@@ -173,6 +184,7 @@
 
                 if (timeLeft <= 0) {
                     clearInterval(timerInterval);
+                    timerInterval = null;
                     document.getElementById("timer-display").style.color = "red";
                     document.body.style.backgroundColor = "black";
                     setTimeout(() => {
@@ -186,6 +198,10 @@
         }
 
         function resetTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
             timeLeft = 150;
             document.getElementById("timer-display").textContent = "2:30";
             document.getElementById("timer-display").style.color = "white";

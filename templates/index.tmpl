@@ -54,23 +54,29 @@
     <script>
         var matches = [];
         var soundSelect = document.getElementById("sound-select");
-        var socket = new WebSocket((location.protocol === "http:" ? "ws://" : "wss://") + location.host + "/ws");
-        socket.addEventListener("open", (event) => {
-            console.log("WebSocket is open now.");
-            // Request full schedule (no round selection required)
-            socket.send(JSON.stringify({ "type": "get_info", "payload": "" }));
-        });
-        socket.addEventListener("message", (event) => {
-            console.log("Message from server ", event.data);
-            const message = JSON.parse(event.data);
-            if (message.type === "matches") {
-                // preserve sheet order (server returns sheet order)
-                matches = message.payload;
-                if (matches.length > 0) {
-                    showMatch(matches[0].match_num);
+        var socket = null;
+
+        function connectSocket() {
+            socket = new WebSocket((location.protocol === "http:" ? "ws://" : "wss://") + location.host + "/ws");
+            socket.addEventListener("open", () => {
+                console.log("WebSocket is open now.");
+                socket.send(JSON.stringify({ "type": "get_info", "payload": "" }));
+            });
+            socket.addEventListener("message", (event) => {
+                try {
+                    const message = JSON.parse(event.data);
+                    if (message.type === "matches" && Array.isArray(message.payload)) {
+                        matches = message.payload;
+                        if (matches.length > 0) showMatch(matches[0].match_num);
+                    }
+                } catch (error) {
+                    console.error("Invalid WebSocket message:", error);
                 }
-            }
-        });
+            });
+            socket.addEventListener("close", () => setTimeout(connectSocket, 1000), { once: true });
+        }
+
+        connectSocket();
         function previousMatch(matchNum) {
             var currentIndex = matches.findIndex(m => m.match_num === matchNum);
             if (currentIndex > 0) {
@@ -80,7 +86,9 @@
         }
         function setActiveMatch(matchNum) {
             // No round selection: send only matchNum and let server/clients interpret as needed
-            socket.send(JSON.stringify({ "type": "set_active_match", "payload": { matchNum } }));
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({ "type": "set_active_match", "payload": { matchNum } }));
+            }
         }
         function nextMatch(matchNum) {
             var currentIndex = matches.findIndex(m => m.match_num === matchNum);
@@ -99,14 +107,11 @@
                 document.getElementById("next-match").onclick = () => nextMatch(match.match_num);
             }
         }
-        socket.addEventListener("close", (event) => {
-            setTimeout(() => {
-                socket = new WebSocket((location.protocol === "http:" ? "ws://" : "wss://") + location.host + "/ws");
-            }, 1000);
-        });
         soundSelect.addEventListener("change", (event) => {
             var soundType = event.target.value;
-            socket.send(JSON.stringify({ "type": "play_test_sound", "payload": { soundType } }));
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({ "type": "play_test_sound", "payload": { soundType } }));
+            }
         });
     </script>
 </body>

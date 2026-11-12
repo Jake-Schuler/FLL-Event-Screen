@@ -94,19 +94,24 @@ func HandleWebSocketConnection(conn *websocket.Conn) {
 
 // WebSocket connection manager
 type ConnectionManager struct {
-	connections map[*websocket.Conn]bool
+	connections map[*websocket.Conn]*managedConnection
 	mutex       sync.RWMutex
 }
 
+type managedConnection struct {
+	conn      *websocket.Conn
+	writeLock sync.Mutex
+}
+
 var Manager = &ConnectionManager{
-	connections: make(map[*websocket.Conn]bool),
+	connections: make(map[*websocket.Conn]*managedConnection),
 }
 
 // Add connection to manager
 func (cm *ConnectionManager) AddConnection(conn *websocket.Conn) {
 	cm.mutex.Lock()
 	defer cm.mutex.Unlock()
-	cm.connections[conn] = true
+	cm.connections[conn] = &managedConnection{conn: conn}
 	log.Printf("WebSocket connection added. Total connections: %d", len(cm.connections))
 }
 
@@ -121,17 +126,23 @@ func (cm *ConnectionManager) RemoveConnection(conn *websocket.Conn) {
 // Broadcast message to all connected clients
 func (cm *ConnectionManager) Broadcast(message models.WebSocketMessage) {
 	cm.mutex.RLock()
-	defer cm.mutex.RUnlock()
+	connections := make([]*managedConnection, 0, len(cm.connections))
+	for _, connection := range cm.connections {
+		connections = append(connections, connection)
+	}
+	cm.mutex.RUnlock()
 
-	for conn := range cm.connections {
-		err := conn.WriteJSON(message)
+	for _, connection := range connections {
+		connection.writeLock.Lock()
+		err := connection.conn.WriteJSON(message)
+		connection.writeLock.Unlock()
 		if err != nil {
 			log.Printf("Error broadcasting to client: %v", err)
 			// Remove dead connection
-			go func(c *websocket.Conn) {
-				cm.RemoveConnection(c)
-				c.Close()
-			}(conn)
+			go func(c *managedConnection) {
+				cm.RemoveConnection(c.conn)
+				c.conn.Close()
+			}(connection)
 		}
 	}
 }
